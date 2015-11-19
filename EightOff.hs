@@ -4,8 +4,7 @@ module EightOff(sCard,
                 isKing,
                 pack,
                 shuffle,
-                eoDeal,
-                eoBoardToString)
+                eoDeal)
 where
 
     import System.Random
@@ -60,32 +59,15 @@ where
         let shuffledDeck = shuffle pack
             reserves = take 4 shuffledDeck
             foundations = []
-            column = take 6 shuffledDeck -- need a function that splits the deck into the right composition
-            columns = [column,column,column,column,column,column,column,column] -- this could be replaced by a call to a function that split the shuffled deck into two lists (or a tuple?), one of 4 cards, and the second of 8 lists of 5
+            columns = splitDeck (drop 4 shuffledDeck) -- this could be replaced by a call to a function that split the shuffled deck into two lists (or a tuple?), one of 4 cards, and the second of 8 lists of 5
         in (columns,reserves,foundations)
-
-
-    -- splitDeck :: Deck -> [Deck] -> Deck
-    -- -- splitDeck deck columns@[[]] = head deck : head columns
-    -- splitDeck deck columns
-    --     | length (head columns) <= 6 = (head deck : head columns) ++ splitDeck (tail deck) (tail columns)
-    --     | otherwise = splitDeck (tail deck) columns
-        -- if length is less than or equal to 6, add to current column
-        -- else make new column and cons on to call that produces first column
-    -- splitDeck :: Deck -> (Deck,Deck,Deck,Deck,Deck,Deck,Deck,Deck)
-    -- splitDeck deck = splitAt 6 snd(splitAt 6 snd(splitAt 6 snd(splitAt 6 snd(splitAt 6 snd(splitAt 6 snd(splitAt 6 snd(splitAt 6 deck)))))))
-    -- splitDeck deck = splitDeck(splitAt 6 deck)
-    -- splitDeck deck = [(splitAt 6 deck)] ++ splitDeck (drop 6 deck)
-
-    -- splitDeckA :: (Deck,Deck) -> (Deck, Deck)
-    -- splitDeckA deck = fst deck ++ (splitDeckA snd(deck))
-
-    splitDeck :: Deck -> [Deck] -> Deck
-    splitDeck deck columns
-        | length (head columns) <= 6 = (head deck : head columns) ++ splitDeck (tail deck) (tail columns)
-        | otherwise = splitDeck (tail deck) (tail columns)
-        -- this doesn't make eight separate lists, but a single list of 8 cards
         --
+    splitDeck :: Deck -> [Deck]
+    splitDeck [] = []
+    splitDeck deck =
+        let
+            (h,t) = splitAt 6 deck
+            in (h : splitDeck t)
 -- *EightOff> splitDeck pack [[],[],[],[],[],[],[],[]]
 -- [(Ace,Clubs),(Two,Clubs),(Three,Clubs),(Four,Clubs),(Five,Clubs),(Six,Clubs),(Seven,Clubs),(Eight,Clubs)*** Exception: Prelude.head: empty list
 
