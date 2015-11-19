@@ -11,6 +11,7 @@ where
     import System.Random
     import Data.List
     import Data.Ord
+    import Data.Maybe
 
     data Suit = Clubs | Diamonds | Hearts | Spades
         deriving (Eq, Ord, Show)
@@ -73,12 +74,14 @@ where
     eoBoardToString :: EOBoard -> String
     eoBoardToString (columns,reserves,foundations) =
         "Foundations: " ++ show foundations
-        ++ "Reserves: " ++ show reserves
-        ++ "Columns: " ++ show columns
+        -- ++ "Reserves: " ++ show reserves
+        -- ++ "Columns: " ++ show columns
 
     toFoundations :: EOBoard -> EOBoard
     toFoundations board@(columns,reserves,foundations) = (columns, reserves, new_foundations)
-        where new_foundations = map head (map (moveToFoundations board) (filter isAce (map head columns) ++ reserves))
+        where new_foundations = map head (map (moveToFoundations board) topAces ++ [[successorCards]])
+              topAces = filter isAce ((map head columns) ++ reserves)
+              successorCards = map (fromJust . sCard) topAces
                                 -- mapping head here works but is inefficient
 
     -- toFoundations board@(columns,reserves,_) = (new_columns,new_reserves,foundations)
@@ -95,6 +98,7 @@ where
     moveToFoundations :: EOBoard -> Card -> [Deck]
     moveToFoundations board@(_,_,foundations) card
         | null foundations = [[card]]
+        | (isAce . head . head) foundations = [head foundations ++ [card]]
         -- | otherwise = card : foundations
         -- | null (head foundations) = card : head foundations
         -- | otherwise = [card]
