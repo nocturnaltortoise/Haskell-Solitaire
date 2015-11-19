@@ -83,7 +83,11 @@ where
     splitDeck :: Deck -> [Deck] -> Deck
     splitDeck deck columns
         | length (head columns) <= 6 = (head deck : head columns) ++ splitDeck (tail deck) (tail columns)
-        | otherwise = splitDeck (tail deck) columns
+        | otherwise = splitDeck (tail deck) (tail columns)
+        -- this doesn't make eight separate lists, but a single list of 8 cards
+        --
+-- *EightOff> splitDeck pack [[],[],[],[],[],[],[],[]]
+-- [(Ace,Clubs),(Two,Clubs),(Three,Clubs),(Four,Clubs),(Five,Clubs),(Six,Clubs),(Seven,Clubs),(Eight,Clubs)*** Exception: Prelude.head: empty list
 
     eoBoardToString :: EOBoard -> String
     eoBoardToString (columns,reserves,foundations) =
