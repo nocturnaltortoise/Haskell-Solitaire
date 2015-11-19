@@ -4,7 +4,8 @@ module EightOff(sCard,
                 isKing,
                 pack,
                 shuffle,
-                eoDeal)
+                eoDeal,
+                toFoundations)
 where
 
     import System.Random
@@ -68,8 +69,6 @@ where
         let
             (h,t) = splitAt 6 deck
             in (h : splitDeck t)
--- *EightOff> splitDeck pack [[],[],[],[],[],[],[],[]]
--- [(Ace,Clubs),(Two,Clubs),(Three,Clubs),(Four,Clubs),(Five,Clubs),(Six,Clubs),(Seven,Clubs),(Eight,Clubs)*** Exception: Prelude.head: empty list
 
     eoBoardToString :: EOBoard -> String
     eoBoardToString (columns,reserves,foundations) =
@@ -77,10 +76,25 @@ where
         ++ "Reserves: " ++ show reserves
         ++ "Columns: " ++ show columns
 
-    -- toFoundations :: EOBoard -> EOBoard
-    -- toFoundations board =
+    toFoundations :: EOBoard -> EOBoard
+    toFoundations board@(columns,reserves,foundations) = (columns, reserves, new_foundations)
+        where new_foundations = map head (map (moveToFoundations board) (filter isAce (map head columns) ++ reserves))
+                                -- mapping head here works but is inefficient
+
+    -- toFoundations board@(columns,reserves,_) = (new_columns,new_reserves,foundations)
+    --     where new_columns = map (moveToFoundations board) (filter isAce (map (head) columns))
+    --           new_reserves = map (moveToFoundations board) (filter isAce reserves)
+
+    -- [ card | column <- columns, card <- column, isAce card]
         -- check the head of the first column for an Ace
             -- if there is an ace, move it to the foundations
                 -- now check the new head for a two, if there is one move it to a foundation with an ace of the same suit,
                     -- and check the new head for a three ...
             -- otherwise, check the next column for an ace
+
+    moveToFoundations :: EOBoard -> Card -> [Deck]
+    moveToFoundations board@(_,_,foundations) card
+        | null foundations = [[card]]
+        -- | otherwise = card : foundations
+        -- | null (head foundations) = card : head foundations
+        -- | otherwise = [card]
