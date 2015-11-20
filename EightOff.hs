@@ -51,7 +51,7 @@ where
     shuffle :: Deck -> Deck
     shuffle a =
         let sortedPack = sortBy (comparing snd) (zip cards randomNumList)
-            rng = mkStdGen 334232 --need a way of generating a random seed so shuffles are different every time
+            rng = mkStdGen 334232345 --need a way of generating a random seed so shuffles are different every time
             cards = a
             randomNumList = take 50 (randoms rng::[Int])
         in map fst sortedPack
@@ -66,23 +66,40 @@ where
         --
     splitDeck :: Deck -> [Deck]
     splitDeck [] = []
-    splitDeck deck =
-        let
-            (h,t) = splitAt 6 deck
-            in (h : splitDeck t)
+    splitDeck deck = h : splitDeck t
+        where (h,t) = splitAt 6 deck
 
     eoBoardToString :: EOBoard -> String
     eoBoardToString (columns,reserves,foundations) =
         "Foundations: " ++ show foundations
-        -- ++ "Reserves: " ++ show reserves
-        -- ++ "Columns: " ++ show columns
+        ++ "Reserves: " ++ show reserves
+        ++ "Columns: " ++ show columns
+
+    toFoundationsA :: EOBoard -> EOBoard
+    toFoundationsA board@(columns,reserves,foundations) = (new_columns, new_reserves, new_foundations)
+        where new_foundations = map head (map (moveToFoundations board) topAces)
+              new_columns = removeFromColumns topAces board
+              new_reserves = dropWhile isAce reserves
+              topAces = filter isAce ((map head columns) ++ reserves)
+            --   ++ map (moveToFoundations (columns,reserves,new_foundations)) successorCards)
+              successorCards = findSuccessors (filter isAce (map head columns) ++ reserves)
+
+ -- map (\e -> if ((e `elem` new_foundations) && (e `elem` columns)) then drop 1 (filter (==e) columns) else e) columns
+    removeFromColumns :: Deck -> EOBoard -> EOBoard
+    removeFromColumns deck board@(columns, reserves, foundations) = (new_columns, reserves, foundations)
+        where new_columns = [[]]
 
     toFoundations :: EOBoard -> EOBoard
-    toFoundations board@(columns,reserves,foundations) = (columns, reserves, new_foundations)
-        where new_foundations = map head (map (moveToFoundations board) topAces ++ [[successorCards]])
-              topAces = filter isAce ((map head columns) ++ reserves)
-              successorCards = map (fromJust . sCard) topAces
-                                -- mapping head here works but is inefficient
+    toFoundations board
+        | canMove board = toFoundations (toFoundationsA board)
+        | otherwise = board
+
+    canMove :: EOBoard -> Bool
+    canMove board@(columns,reserves,foundations) = any isAce (filter isAce ((map head columns) ++ reserves))
+
+    findSuccessors :: Deck -> Deck
+    findSuccessors [card] = [(fromJust . sCard) card]
+    findSuccessors (h:t) = (fromJust . sCard) h : findSuccessors t
 
     -- toFoundations board@(columns,reserves,_) = (new_columns,new_reserves,foundations)
     --     where new_columns = map (moveToFoundations board) (filter isAce (map (head) columns))
@@ -97,8 +114,8 @@ where
 
     moveToFoundations :: EOBoard -> Card -> [Deck]
     moveToFoundations board@(_,_,foundations) card
-        | null foundations = [[card]]
-        | (isAce . head . head) foundations = [head foundations ++ [card]]
+        | null foundations && isAce card = [[card]]
+        | (isAce . head . head) foundations && card `notElem` (head foundations) = [reverse (card : head foundations)]
         -- | otherwise = card : foundations
         -- | null (head foundations) = card : head foundations
         -- | otherwise = [card]
