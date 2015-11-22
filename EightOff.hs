@@ -81,6 +81,7 @@ where
         where (h,t) = splitAt 6 deck
 
     --Helper function that makes the EOBoard a little easier to read.
+    --Unfortunately printing show "\n" doesn't make a newline, that would need IO
     eoBoardToString :: EOBoard -> String
     eoBoardToString (columns,reserves,foundations) =
         "Columns: " ++ show columns
@@ -97,16 +98,12 @@ where
     toFoundationsA :: EOBoard -> EOBoard
     toFoundationsA board@(columns,reserves,foundations) = (new_columns, new_reserves, new_foundations)
         where (_,_,new_foundations) = foldr moveToFoundations board (topAces ++ successorCards)
-              new_columns = filter (not.null) (filter (not . isAce . head) columns) -- this needs to remove only cards that have been moved
-              new_reserves = filter (not . isAce) reserves -- similarly
+              new_columns = filter (not.null)
+                                (map (\e -> if (isAce(head e) || any (elem (head e)) [successorCards]) then tail e
+                                    else e) columns)
+              new_reserves = filter (\e -> not(isAce e|| e `elem` successorCards)) reserves
               topAces = findMoveableAces board
               successorCards = findMoveableSuccessors board
-            --   topAces = filter isAce (reserves ++ map head (filter (not . null) columns))
-            --   successorCards = findSuccessors (filter isAce ((map head (columns ++ foundations)) ++ reserves))
-              -- perhaps this should call a function that returns a newly constructed board - with the successors removed from the columns and added to the foundations
-
-              -- need to work out which cards we can move, and then move them, and then remove them from the columns and reserves
-              -- every card's unique so we can literally filter them all out of both columns and reserves - might need a helper function for that
 
     -- Find aces in the heads of the columns or the reserves.
     findMoveableAces :: EOBoard -> Deck
@@ -114,23 +111,15 @@ where
 
     -- Find the successor cards that are in the heads of the columns or the reserves
     findMoveableSuccessors :: EOBoard -> Deck
-    findMoveableSuccessors (columns, reserves, foundations) = filter (\e -> any (elem e) (columns ++ [reserves])) (map (fromJust . sCard . head) foundations) -- need to check whether successors are in the columns
+    findMoveableSuccessors (columns, reserves, foundations) =
+        filter (\e -> (elem e) ((map head columns) ++ reserves))
+            (map (\e -> if isKing (head e)
+                then head e else (fromJust.sCard.head) e) foundations)
 
     -- Checks whether there are any cards that can be moved to the foundations.
     canMove :: EOBoard -> Bool
-    canMove board@(columns,reserves,foundations) = (not.null) (findMoveableAces board) || (not.null) (findMoveableSuccessors board)
-
-    -- Finds successors cards of a list of cards.
-    findSuccessors :: Deck -> Deck
-    findSuccessors [] = []
-    findSuccessors [card]
-        | isKing card = []
-        | otherwise = [(fromJust . sCard) card]
-    findSuccessors (h:t) = (fromJust . sCard) h : findSuccessors t
-
-    -- Returns whether a successor of a card exists
-    isSuccessor :: Card -> Bool
-    isSuccessor = isJust . sCard
+    canMove board = (not.null) (findMoveableAces board)
+                        || (not.null) (findMoveableSuccessors board)
 
     -- Moves a card to the foundations and returns the resulting EOBoard
     moveToFoundations :: Card -> EOBoard -> EOBoard
