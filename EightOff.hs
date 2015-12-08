@@ -1,12 +1,15 @@
-module EightOff(sCard,
-                pCard,
-                isAce,
-                isKing,
-                pack,
+module EightOff(pack,
                 shuffle,
                 eoDeal,
-                eoBoardToString,
-                toFoundations)
+                toFoundations,
+                Suit,
+                Pip,
+                Card,
+                Deck,
+                Columns,
+                Reserves,
+                Foundations,
+                EOBoard)
 where
 
     import System.Random
@@ -56,6 +59,7 @@ where
         where pipList = [Ace ..]
 
     -- Shuffles a set of cards
+    -- this needs to take a seed so it can be used to generate serveral boards
     shuffle :: Deck
     shuffle =
         let sortedPack = sortBy (comparing snd) (zip cards randomNumList)
@@ -82,6 +86,7 @@ where
 
     --Helper function that makes the EOBoard a little easier to read.
     --Unfortunately printing show "\n" doesn't make a newline, that would need IO
+    -- Deprecated - use EOIO displayEOB
     eoBoardToString :: EOBoard -> String
     eoBoardToString (columns,reserves,foundations) =
         "Columns: " ++ show columns

@@ -9,8 +9,8 @@ play a game, displaying successive moves -}
 
  -- import your solitaire code here
 
- import EightOff
- import Data.Maybe
+    import EightOff
+    import Data.Maybe
 
 {-  Data Structures to be imported
  -- playing card data structures
@@ -39,36 +39,41 @@ play a game, displaying successive moves -}
 
  ----------------------------------------------------------
  -- display an EOBoard
- displayEOB :: EOBoard -> IO String
+    displayEOB :: EOBoard -> IO String
+    displayEOB (columns,reserves,foundations) =
+        do
+          let colStr = colsToString columns
+          putStr "EOBoard\nFoundations  "
+          putStrLn (show foundations)
+          putStr  "Columns"
+          putStr colStr
+          putStr "\n\nReserve     "
+          putStrLn (show reserves)
+          putStr "\n---------------------------------------------\n"
+          return ""
 
- displayEOB (fnds,cols,res) = do
-  let colStr = colsToString cols
-  putStr "EOBoard\nFoundations  "
-  putStrLn (show fnds)
-  putStr  "Columns"
-  putStr colStr
-  putStr "\n\nReserve     "
-  putStrLn (show res)
-  putStr "\n---------------------------------------------\n"
-  return ""
+    colsToString :: Columns->String -- prepare String to print columns on separate lines
+    colsToString cols =
+    --   foldr (++) "" ["\n             "++(show col) |col<-cols]
+        foldr (++) "" ["\n             "++(show col) |col<-cols]
 
- colsToString :: Columns->String -- prepare String to print columns on separate lines
+    -----------------------------------------------------------------------
 
- colsToString cols =
-  foldr (++) "" ["\n             "++(show col) |col<-cols]
+    -- display a list of EOBoards
+     -- @ notation doesn't seem to work correctl
+    displayEOBList :: [EOBoard]-> IO String
+    displayEOBList list = if (null list) then (return "") else do
+                            displayEOB (head list)
+                            displayEOBList (tail list)
 
------------------------------------------------------------------------
-
--- display a list of EOBoards
-
- displayEOBList :: [EOBoard]-> IO String
-
- displayEOBList eobl =  -- @ notation doesn't seem to work correctly
-  do
-   if (null eobl) then do (return "")
-                  else do
-                        displayEOB (head eobl)
-                        displayEOBList (tail eobl)
+        -- do
+        --     if (null list) then
+        --         do
+        --             (return "")
+        --     else
+        --         do
+        --             displayEOB (head list)
+        --             displayEOBList (tail list)
 
 
 -----------------------------------------------------------------
@@ -77,34 +82,37 @@ play a game, displaying successive moves -}
  -- score is number of cards on foundations
  -- return a String for display
 
- scoreBoard :: EOBoard-> String
- scoreBoard (fnds, cols, res) = "A LOSS: SCORE  " ++ (show (52- (length res) - (foldr (+) 0 (map length cols))))
+    scoreBoard :: EOBoard-> String
+    scoreBoard (columns, reserves, foundations) = "A LOSS: SCORE  " ++ (show (52- (length reserves) - (foldr (+) 0 (map length columns))))
 
  -----------------------------------------------------------------------------
  -- play a game given initial board
  -- assuming a fn chooseMove :: EOBoard ->Maybe EOBoard
  -- & that toFoundations is handled outside
 
- displayEOGame :: EOBoard ->IO String
+-- uncomment when you've actually written this
 
- displayEOGame b = do
-  let (fnds,cols,res) = b -- apparently can't do this with @
-  if ((null cols)&&(null res)) -- if cols & reserve empty its a win
-     then return "A WIN"
-     else
-      do
-       displayEOB b -- display given board
-       let res = chooseMove b
-       if (isJust res) then
-               do
-                let nb = resMaybe res
-                displayEOGame nb
-              else
-               do
-                 let score = scoreBoard b
-                 return score
+ -- displayEOGame :: EOBoard ->IO String
+
+ -- displayEOGame board = do
+ --  let (columns, reserves, foundations) = board -- apparently can't do this with @
+ --  if ((null columns)&&(null reserves)) -- if cols & reserve empty its a win
+ --     then return "A WIN"
+ --     else
+ --      do
+ --       displayEOB board -- display given board
+ --       let res = chooseMove board
+ --       if (isJust reserves) then
+ --               do
+ --                let nb = fromJust reserves -- what the hell's "nb"?
+ --                -- let nb = resMaybe res
+ --                displayEOGame nb
+ --              else
+ --               do
+ --                 let score = scoreBoard board
+ --                 return score
 
  ------------------------------------------------
- -- Maybe helper
- resMaybe :: (Maybe a) -> a
- resMaybe (Just x) = x
+ -- Maybe helper -- do we need this or can we just use fromJust/fromMaybe?
+    -- resMaybe :: (Maybe a) -> a
+    -- resMaybe (Just x) = x
