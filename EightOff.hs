@@ -1,16 +1,4 @@
-module EightOff(pack,
-                shuffle,
-                eoDeal,
-                toFoundations,
-                Suit,
-                Pip,
-                Card,
-                Deck,
-                Columns,
-                Reserves,
-                Foundations,
-                EOBoard)
-where
+module EightOff where
 
     import System.Random
     import Data.List
@@ -49,6 +37,9 @@ where
     isKing :: Card -> Bool
     isKing (pip,_) = pip == King
 
+    isQueen :: Card -> Bool
+    isQueen (pip,_) = pip == Queen
+
     -- Generates a list of all the cards
     pack :: Deck
     pack = suitList Clubs ++ suitList Diamonds ++ suitList Hearts ++ suitList Spades
@@ -60,19 +51,19 @@ where
 
     -- Shuffles a set of cards
     -- this needs to take a seed so it can be used to generate serveral boards
-    shuffle :: Deck
-    shuffle =
+    shuffle :: Int -> Deck
+    shuffle seed =
         let sortedPack = sortBy (comparing snd) (zip cards randomNumList)
-            rng = mkStdGen 33423234
+            rng = mkStdGen seed
             -- arbitrary seed, shuffling not really random.
             cards = pack
             randomNumList = take 52 (randoms rng::[Int])
         in map fst sortedPack
 
     -- Creates a Board from the shuffled pack.
-    eoDeal :: EOBoard
-    eoDeal =
-        let shuffledDeck = shuffle -- Shuffle the pack of cards
+    eoDeal :: Int -> EOBoard
+    eoDeal seed =
+        let shuffledDeck = shuffle seed -- Shuffle the pack of cards
             reserves = take 4 shuffledDeck -- Take four out for the reserves
             foundations = [] -- Make an empty list for the starting foundations
             columns = splitDeck (drop 4 shuffledDeck) -- Split the remaining cards into 8 columns of 6
@@ -107,12 +98,13 @@ where
               -- check whether there are any aces or successor cards (cards that have been moved) in the heads of the columns,
               -- if there are, return the tail (remove those cards) otherwise leave the cards there
               new_columns = filter (not.null)
-                                (map (\e -> if isAce (head e) || any (elem (head e)) [successorCards] then tail e
+                                (map (\e -> if isAce (head e) || any (elem (head e)) [successorCards] || any (elem (head e)) [moveableKings] then tail e
                                     else e) columns)
               -- filter out the aces and successor cards from the reserves
-              new_reserves = filter (\e -> not(isAce e|| e `elem` successorCards)) reserves
+              new_reserves = filter (\e -> not(isAce e|| e `elem` successorCards || e `elem` moveableKings)) reserves
               topAces = findMoveableAces board
               successorCards = findMoveableSuccessors board
+              moveableKings = findMoveableKings board
 
     -- Find aces in the heads of the columns or the reserves.
     findMoveableAces :: EOBoard -> Deck
@@ -129,10 +121,24 @@ where
             (map (\e -> if isKing (head e)
                 then head e else (sCard.head) e) foundations)
 
+    findMoveableKings :: EOBoard -> Deck
+    findMoveableKings (columns, reserves, _) = filter isKing ((map head columns) ++ reserves)
+
+    canMoveKing :: EOBoard -> Bool
+    canMoveKing board@(columns, _, foundations)
+        | (not.null) (findMoveableKings board) && (any null columns || canMoveToReserves board || any (isQueen) (map (sCard.head) foundations)) = True
+        | otherwise = False
+
+    canMoveToReserves :: EOBoard -> Bool
+    canMoveToReserves (_,reserves,_)
+        | length reserves < 8 = True
+        | otherwise = False
+
     -- Checks whether there are any cards that can be moved to the foundations.
     canMove :: EOBoard -> Bool
     canMove board = (not.null) (findMoveableAces board)
                         || (not.null) (findMoveableSuccessors board)
+                        || canMoveKing board && (not.null) (findMoveableKings board)
 
     -- Moves a card to the foundations and returns the resulting EOBoard
     moveToFoundations :: Card -> EOBoard -> EOBoard

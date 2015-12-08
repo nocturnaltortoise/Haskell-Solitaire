@@ -10,6 +10,7 @@ play a game, displaying successive moves -}
  -- import your solitaire code here
 
     import EightOff
+    import EightOffPlayer
     import Data.Maybe
 
 {-  Data Structures to be imported
