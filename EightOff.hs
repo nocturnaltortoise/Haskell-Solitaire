@@ -98,13 +98,15 @@ module EightOff where
               -- check whether there are any aces or successor cards (cards that have been moved) in the heads of the columns,
               -- if there are, return the tail (remove those cards) otherwise leave the cards there
               new_columns = filter (not.null)
-                                (map (\e -> if isAce (head e) || any (elem (head e)) [successorCards] || any (elem (head e)) [moveableKings] then tail e
+                                (map (\e -> if isAce (head e) || any (elem (head e)) [successorCards] then tail e
                                     else e) columns)
+                                    -- || any (elem (head e)) [moveableKings]
               -- filter out the aces and successor cards from the reserves
-              new_reserves = filter (\e -> not(isAce e|| e `elem` successorCards || e `elem` moveableKings)) reserves
+              new_reserves = filter (\e -> not(isAce e|| e `elem` successorCards )) reserves
+              -- || e `elem` moveableKings
               topAces = findMoveableAces board
               successorCards = findMoveableSuccessors board
-              moveableKings = findMoveableKings board
+            --   moveableKings = findMoveableKings board
 
     -- Find aces in the heads of the columns or the reserves.
     findMoveableAces :: EOBoard -> Deck
@@ -121,8 +123,20 @@ module EightOff where
             (map (\e -> if isKing (head e)
                 then head e else (sCard.head) e) foundations)
 
+    -- Find cards in the heads of columns or reserves that can be moved to columns
+    findMoveablePredecessors :: EOBoard -> Deck
+    findMoveablePredecessors (columns, reserves, foundations) =
+        filter (\e -> e `elem` ((map head columns) ++ reserves))
+            (map (\e -> if isAce (head e)
+                then head e else (pCard.head) e) columns)
+
+    -- moveable kings referring to kings that can be moved if there is space
     findMoveableKings :: EOBoard -> Deck
     findMoveableKings (columns, reserves, _) = filter isKing ((map head columns) ++ reserves)
+
+    -- need to be able to move successors of cards on columns to those columns
+    -- moveCardToColumn :: Card -> EOBoard -> Columns
+    -- moveCardToColumn card board@(columns, reserves, foundations) = filter (card `notElem`) columns
 
     canMoveKing :: EOBoard -> Bool
     canMoveKing board@(columns, _, foundations)
@@ -134,11 +148,38 @@ module EightOff where
         | length reserves < 8 = True
         | otherwise = False
 
+    canMoveToColumns :: EOBoard -> Bool
+    canMoveToColumns board
+        | canMoveKing board = True
+        | (not.null) (findMoveablePredecessors board) = True
+        | otherwise = False
+
+    -- canMoveToFoundations :: EOBoard -> Bool
+
     -- Checks whether there are any cards that can be moved to the foundations.
     canMove :: EOBoard -> Bool
     canMove board = (not.null) (findMoveableAces board)
                         || (not.null) (findMoveableSuccessors board)
-                        || canMoveKing board && (not.null) (findMoveableKings board)
+                        -- || canMoveKing board && (not.null) (findMoveableKings board) -- should this be here?
+                        -- can't keep adding to this - only moves to the foundations should be considered here
+                        -- other moves - to reserves and between columns - should be considered in findMoves
+                        -- or some other function
+
+    moveCardToReserves :: Card -> EOBoard -> EOBoard
+    moveCardToReserves card (columns, reserves, foundations) = (new_columns, new_reserves, foundations)
+        where new_columns = (filter (card `notElem`) columns)
+              new_reserves = card : reserves
+
+    moveKingToNewColumn :: EOBoard -> Card -> EOBoard
+    moveKingToNewColumn board@(columns, reserves, foundations) card
+        | canMoveKing board = (new_columns, reserves, foundations)
+        | otherwise = board
+            where new_columns = (filter (card `notElem`) columns) ++ [[card]]
+
+    matchCardWithColumns :: Card -> EOBoard -> EOBoard
+    matchCardWithColumns card (columns,reserves,foundations)
+        | isKing card = (columns ++ [[card]],reserves,foundations)
+        | otherwise = (map (\e -> if (sameSuit card (head e)) && pCard (head e) == card then card : e else e) columns, reserves, foundations)
 
     -- Moves a card to the foundations and returns the resulting EOBoard
     moveToFoundations :: Card -> EOBoard -> EOBoard
