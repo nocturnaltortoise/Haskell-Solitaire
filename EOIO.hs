@@ -91,29 +91,25 @@ play a game, displaying successive moves -}
  -- assuming a fn chooseMove :: EOBoard ->Maybe EOBoard
  -- & that toFoundations is handled outside
 
--- uncomment when you've actually written this
-
- -- displayEOGame :: EOBoard ->IO String
-
- -- displayEOGame board = do
- --  let (columns, reserves, foundations) = board -- apparently can't do this with @
- --  if ((null columns)&&(null reserves)) -- if cols & reserve empty its a win
- --     then return "A WIN"
- --     else
- --      do
- --       displayEOB board -- display given board
- --       let res = chooseMove board
- --       if (isJust reserves) then
- --               do
- --                let nb = fromJust reserves -- what the hell's "nb"?
- --                -- let nb = resMaybe res
- --                displayEOGame nb
- --              else
- --               do
- --                 let score = scoreBoard board
- --                 return score
+    displayEOGame :: EOBoard -> IO String
+    displayEOGame board@(columns, reserves, foundations) =
+      if ((null columns)&&(null reserves)) -- if cols & reserve empty its a win
+         then return "A WIN"
+         else
+          do
+           displayEOB board -- display given board
+           let result = chooseMove board
+           if (isJust result) then
+                   do
+                    let nb = fromJust result
+                    -- let nb = resMaybe res
+                    displayEOGame nb
+                  else
+                   do
+                     let score = scoreBoard board
+                     return score
 
  ------------------------------------------------
- -- Maybe helper -- do we need this or can we just use fromJust/fromMaybe?
+ -- Maybe helper
     -- resMaybe :: (Maybe a) -> a
     -- resMaybe (Just x) = x
