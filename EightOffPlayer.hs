@@ -4,56 +4,65 @@ module EightOffPlayer where
     import Data.Ord
     import Data.List
     import Data.Maybe
+    import System.Random
+    import Debug.Trace
 
     findMoves :: EOBoard -> [EOBoard]
-    findMoves board@(columns, reserves, foundations)
-        -- | canMoveToFoundations board = [movesToFoundations]
-        -- | canMoveToFoundationsToReserves board = [movesToReserves]
-        | canMoveToFoundations board = [movesToFoundations]
-        | canMoveToColumns board = [movesToColumns]
-        -- | otherwise = []
-        -- | canMoveToFoundations board && canMoveToColumns board && canMoveToReserves board = [movesToFoundations, movesToColumns, movesToReserves]
-        -- | canMoveToFoundations board && canMoveToColumns board = [movesToFoundations, movesToColumns]
-        | canMoveToReserves board = [movesToReserves]
-        | otherwise = []
-        where movesToFoundations = toFoundations board
-              movesToColumns = foldr (matchCardWithColumns) board (findMoveablePredecessors board)
-              movesToReserves = if isJust $ bestCardToMove board then moveCardToReserves (fromJust $ bestCardToMove board) board else moveCardToReserves (head(map head columns)) board  --very primitive - will just fill reserves
-        -- | canMoveToFoundations board = findMoves $ toFoundations board
-        -- | canMoveToFoundationsToColumns board = findMoves $ foldr (matchCardWithColumns) board (findMoveablePredecessors board)
-        -- -- | canMoveToFoundationsKing board = map (moveKingToNewColumn board) (findMoveableKings board)
-        -- -- | canMoveToFoundationsToReserves board = moveCardToReserves
-        --     --move cards that expose cards that can be moved elsewhere
-        --         -- i.e. move cards that produce a board where canMoveToFoundations || canMoveToFoundationsToColumns || canMoveToFoundationsKing
-        -- | otherwise = []
-        -- | canMoveToFoundationsToReserves board =
+    findMoves board = movesToFoundations ++ movesToColumns ++ movesToReserves
+    --  ++ [movesToReserves] ++ [movesToColumns]
+        where movesToFoundations = [toFoundations board | canMoveToFoundations board]
+              movesToColumns = [foldr matchCardWithColumns board (findMoveablePredecessors board) | canMoveToColumns board]
+              movesToReserves = [moveCardToReserves (fromJust $ bestCardToMove board) board | canMoveToReserves board && (isJust (bestCardToMove board))]
+                                                --[moveCardToReserves (head (map head (filter (not.null) columns))) board]
 
     bestCardToMove :: EOBoard -> Maybe Card
-    bestCardToMove board@(columns, reserves, foundations) = if null list then Nothing else Just bestCardInList
-        where predecessorCards = map (\e -> if isAce e then e else pCard e) (map head columns)
+    bestCardToMove board@(columns, reserves, foundations) = traceShow("best card: ", if null list then Nothing else Just bestCardInList) $ if null list then Nothing else Just bestCardInList
+        where predecessorCards = findMoveablePredecessors board
               successorCards = findMoveableSuccessors board
-              list = [x | x <- (map head columns), isAce(sCard x) || sCard x `elem` predecessorCards || sCard x `elem` successorCards]
+              -- || sCard x `elem` predecessorCards
+              list = [x | x <- map head (filter (not.null) columns), not(isKing x) && (isAce(sCard x))]
               bestCardInList = sortDescending $ zip(map (\e -> weightBoard $ moveCardToReserves e board) list) list
-
 
     sortDescending :: Ord a => [(a,b)] -> b
     sortDescending list = head $ map snd $ sortBy (flip (comparing fst)) list
-    -- findMove board
-    -- if can move king = findMove (moveKing)
-    -- if can move to reserves = findMove (move to reserves)
-    -- if can move to foundations = findMove (move to foundations)
-    -- otherwise = board
 
     chooseMove :: EOBoard -> Maybe EOBoard
     chooseMove board
         | null (findMoves board) = Nothing
-        -- | otherwise = (max(foldr weightBoard 0 findMoves board))
         -- zip the boards with their scores and sort them in descending order?
         | otherwise = Just $ sortDescending $ zip (map weightBoard (findMoves board)) (findMoves board)
-                                --head $ map snd $ sortBy (flip (comparing fst))                                        -- could this map be a fold?
+                                --head $ map snd $ sortBy (flip (comparing fst))  -- could this map be a fold?
     weightBoard :: EOBoard -> Int
-    weightBoard board@(columns, reserves, _) = 52 - fromIntegral(length reserves) - sum(map (fromIntegral.length) columns) + weightBoard nextBoard + weightBoard anotherBoard
-        where nextBoard = fromMaybe board (chooseMove board)
-              anotherBoard = fromMaybe board (chooseMove nextBoard)
+    weightBoard board = weightIndividualBoard board + nextBoard
+        where nextBoard = maybe 0 weightIndividualBoard (chooseMove board)
+            --   anotherBoard = maybe 0 weightIndividualBoard (chooseMove $ fromJust $ chooseMove board)
+
+            --   anotherBoard = fromMaybe board (chooseMove nextBoard)
     -- add weight of all successor boards?
     -- sum(map weightBoard (findMoves board))
+
+    weightIndividualBoard :: EOBoard -> Int
+    weightIndividualBoard (columns, reserves, foundations) = 52 - fromIntegral(length reserves) - sum(map (fromIntegral.length) columns)
+--sum(map length foundations)
+        --52 - fromIntegral(length reserves) - sum(map (fromIntegral.length) columns)
+
+        -- 52 - fromIntegral(length reserves) - sum(map (fromIntegral.length) columns)
+
+    -- getSuccessorBoard :: EOBoard -> Maybe EOBoard
+    -- getSuccessorBoard board
+    --     | isJust $ chooseMove board = Just (fromJust $ chooseMove board)
+    --     | otherwise = Nothing
+
+    eOGame :: EOBoard -> Int
+    eOGame board@(columns, reserves, foundations)
+        | null columns && null reserves = weightIndividualBoard board
+        | isJust (chooseMove board) = weightIndividualBoard $ fromJust $ chooseMove board
+        | otherwise = weightIndividualBoard board
+
+    playEOGames :: Int -> [Int]
+    playEOGames seed = take 100 $ repeat (eOGame $ eoDeal $ randomNumber)
+        where randomNumber = traceShow ("random number: ", head $ randoms (mkStdGen seed)::Int) $ head $ randoms (mkStdGen seed)::Int
+
+    -- eOExpt :: Int -> Int
+    -- eOExpt seed = winCount
+    --     where winCount =

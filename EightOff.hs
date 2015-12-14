@@ -3,6 +3,7 @@ module EightOff where
     import System.Random
     import Data.List
     import Data.Ord
+    import Debug.Trace
 
     data Suit = Clubs | Diamonds | Hearts | Spades
         deriving (Eq, Ord, Show)
@@ -178,12 +179,13 @@ module EightOff where
 
     matchCardWithColumns :: Card -> EOBoard -> EOBoard
     matchCardWithColumns card board@(columns,reserves,foundations)
-        | isKing card = (columns ++ [[card]],reserves,foundations)
-        | otherwise = (map (\e -> if not(isAce (head e)) && pCard (head e) == card then card : e else e) new_columns, reserves, foundations)
-        where predecessorCards = findMoveablePredecessors board
+        -- | isKing card = (columns ++ [[card]],reserves,foundations)
+        | otherwise = (map (\e -> if not(isAce (head e)) && pCard (head e) == card then card : e else e) new_columns, new_reserves, foundations)
+        where predecessorCards = traceShow ("predecessors: ", show (findMoveablePredecessors board)) $ findMoveablePredecessors board
               new_columns = filter (not.null)
-                                (map (\e -> if (not.null) predecessorCards && any (elem (head e)) [predecessorCards] then tail e
+                                (map (\e -> if (not.null) predecessorCards && head e `elem` predecessorCards then tail e
                                     else e) columns)
+              new_reserves = if null predecessorCards then reserves else filter(`notElem` predecessorCards) reserves
 
 --(map (\\ (findMoveablePredecessors board))
     -- Moves a card to the foundations and returns the resulting EOBoard
