@@ -127,22 +127,8 @@ module EightOff where
     -- Find cards in the heads of columns or reserves that can be moved to columns
     findMoveablePredecessors :: EOBoard -> Deck
     findMoveablePredecessors (columns, reserves, foundations) =
-        filter (\e -> e `elem` ((map head (filter (not.null) columns)) ++ reserves))
-            (map (\e -> if isAce (head e)
-                then head e else (pCard.head) e) columns)
-
-    -- moveable kings referring to kings that can be moved if there is space
-    findMoveableKings :: EOBoard -> Deck
-    findMoveableKings (columns, reserves, _) = filter isKing ((map head columns) ++ reserves)
-
-    -- need to be able to move successors of cards on columns to those columns
-    -- moveCardToColumn :: Card -> EOBoard -> Columns
-    -- moveCardToColumn card board@(columns, reserves, foundations) = filter (card `notElem`) columns
-
-    canMoveKing :: EOBoard -> Bool
-    canMoveKing board@(columns, _, foundations)
-        | (not.null) (findMoveableKings board) && (any null columns || canMoveToReserves board || any (isQueen) (map (sCard.head) foundations)) = True
-        | otherwise = False
+            filter (\e -> e `elem` ((map head (filter (not.null) columns)) )) -- need a way of finding predecessorCards of columns in the reserves
+                (map (\e -> (pCard.head) e) (filter (not.isAce.head) columns))
 
     canMoveToReserves :: EOBoard -> Bool
     canMoveToReserves (_,reserves,_)
@@ -151,17 +137,14 @@ module EightOff where
 
     canMoveToColumns :: EOBoard -> Bool
     canMoveToColumns board
-        -- | canMoveKing board = True
         | (not.null) (findMoveablePredecessors board) = True
         | otherwise = False
 
-    -- canMoveToFoundationsToFoundations :: EOBoard -> Bool
 
     -- Checks whether there are any cards that can be moved to the foundations.
     canMoveToFoundations :: EOBoard -> Bool
     canMoveToFoundations board = (not.null) (findMoveableAces board)
                         || (not.null) (findMoveableSuccessors board)
-                        -- || canMoveToFoundationsKing board && (not.null) (findMoveableKings board) -- should this be here?
                         -- can't keep adding to this - only moves to the foundations should be considered here
                         -- other moves - to reserves and between columns - should be considered in findMoves
                         -- or some other function
@@ -171,17 +154,12 @@ module EightOff where
         where new_columns = map (delete card) columns
               new_reserves = card : reserves
 
-    moveKingToNewColumn :: EOBoard -> Card -> EOBoard
-    moveKingToNewColumn board@(columns, reserves, foundations) card
-        | canMoveKing board = (new_columns, reserves, foundations)
-        | otherwise = board
-            where new_columns = (filter (card `notElem`) columns) ++ [[card]]
-
     matchCardWithColumns :: Card -> EOBoard -> EOBoard
     matchCardWithColumns card board@(columns,reserves,foundations)
         -- | isKing card = (columns ++ [[card]],reserves,foundations)
         | otherwise = (map (\e -> if not(isAce (head e)) && pCard (head e) == card then card : e else e) new_columns, new_reserves, foundations)
-        where predecessorCards = traceShow ("predecessors: ", show (findMoveablePredecessors board)) $ findMoveablePredecessors board
+        where predecessorCards = findMoveablePredecessors board
+        -- traceShow ("predecessors: ", show (findMoveablePredecessors board)) $
               new_columns = filter (not.null)
                                 (map (\e -> if (not.null) predecessorCards && head e `elem` predecessorCards then tail e
                                     else e) columns)

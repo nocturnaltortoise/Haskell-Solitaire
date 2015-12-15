@@ -12,6 +12,7 @@ play a game, displaying successive moves -}
     import EightOff
     import EightOffPlayer
     import Data.Maybe
+    import MeanStats
 
 {-  Data Structures to be imported
  -- playing card data structures
