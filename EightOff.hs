@@ -127,7 +127,7 @@ module EightOff where
     -- Find cards in the heads of columns or reserves that can be moved to columns
     findMoveablePredecessors :: EOBoard -> Deck
     findMoveablePredecessors (columns, reserves, foundations) =
-            filter (\e -> e `elem` ((map head (filter (not.null) columns)) )) -- need a way of finding predecessorCards of columns in the reserves
+            filter (\e -> e `elem` ((map head (filter (not.null) columns)) ++ reserves)) -- need a way of finding predecessorCards of columns in the reserves
                 (map (\e -> (pCard.head) e) (filter (not.isAce.head) columns))
 
     canMoveToReserves :: EOBoard -> Bool
@@ -156,7 +156,7 @@ module EightOff where
 
     matchCardWithColumns :: Card -> EOBoard -> EOBoard
     matchCardWithColumns card board@(columns,reserves,foundations)
-        -- | isKing card = (columns ++ [[card]],reserves,foundations)
+        | isKing card = (map (delete card) columns ++ [[card]],reserves,foundations)
         | otherwise = (map (\e -> if not(isAce (head e)) && pCard (head e) == card then card : e else e) new_columns, new_reserves, foundations)
         where predecessorCards = findMoveablePredecessors board
         -- traceShow ("predecessors: ", show (findMoveablePredecessors board)) $
@@ -165,7 +165,6 @@ module EightOff where
                                     else e) columns)
               new_reserves = if null predecessorCards then reserves else filter(`notElem` predecessorCards) reserves
 
---(map (\\ (findMoveablePredecessors board))
     -- Moves a card to the foundations and returns the resulting EOBoard
     moveToFoundations :: Card -> EOBoard -> EOBoard
     moveToFoundations card (columns,reserves,foundations) = (columns, reserves, newFoundations)
