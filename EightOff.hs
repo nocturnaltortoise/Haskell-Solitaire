@@ -1,8 +1,8 @@
 module EightOff where
 
-    import System.Random
-    import Data.List
-    import Data.Ord
+    import System.Random(randoms, mkStdGen)
+    import Data.List(sortBy, delete)
+    import Data.Ord(comparing)
     import Debug.Trace
 
     data Suit = Clubs | Diamonds | Hearts | Spades
@@ -127,39 +127,38 @@ module EightOff where
     -- Find cards in the heads of columns or reserves that can be moved to columns
     findMoveablePredecessors :: EOBoard -> Deck
     findMoveablePredecessors (columns, reserves, foundations) =
-            filter (\e -> e `elem` ((map head (filter (not.null) columns)) ++ reserves)) -- need a way of finding predecessorCards of columns in the reserves
-                (map (\e -> (pCard.head) e) (filter (not.isAce.head) columns))
+            filter (\e -> e `elem` ((map head (filter (not.null) columns)) ++ reserves))
+                (map (pCard.head) (filter (not.isAce.head) columns))
 
+    -- If the length of the reserves is less than 8, we can move to the reserves.
     canMoveToReserves :: EOBoard -> Bool
     canMoveToReserves (_,reserves,_)
         | length reserves < 8 = True
         | otherwise = False
 
+    -- If there are predecessors to the heads of the columns, cards can be moved to the columns.
     canMoveToColumns :: EOBoard -> Bool
     canMoveToColumns board
         | (not.null) (findMoveablePredecessors board) = True
         | otherwise = False
 
-
     -- Checks whether there are any cards that can be moved to the foundations.
     canMoveToFoundations :: EOBoard -> Bool
     canMoveToFoundations board = (not.null) (findMoveableAces board)
                         || (not.null) (findMoveableSuccessors board)
-                        -- can't keep adding to this - only moves to the foundations should be considered here
-                        -- other moves - to reserves and between columns - should be considered in findMoves
-                        -- or some other function
 
+    -- Checks whether a card can be moved to the reserves, if so, delete it from the columns and add it to the reserves.
     moveCardToReserves :: Card -> EOBoard -> EOBoard
     moveCardToReserves card (columns, reserves, foundations) = (new_columns, new_reserves, foundations)
-        where new_columns = map (delete card) columns
-              new_reserves = card : reserves
+        where new_columns = if length reserves < 8 then map (delete card) columns else columns
+              new_reserves = if length reserves < 8 then card : reserves else reserves
 
+    -- Works in a similar way to matchCardWithFoundations
     matchCardWithColumns :: Card -> EOBoard -> EOBoard
     matchCardWithColumns card board@(columns,reserves,foundations)
-        | isKing card = (map (delete card) columns ++ [[card]],reserves,foundations)
+        | isKing card = (map (delete card) columns ++ [[card]],delete card reserves,foundations)
         | otherwise = (map (\e -> if not(isAce (head e)) && pCard (head e) == card then card : e else e) new_columns, new_reserves, foundations)
         where predecessorCards = findMoveablePredecessors board
-        -- traceShow ("predecessors: ", show (findMoveablePredecessors board)) $
               new_columns = filter (not.null)
                                 (map (\e -> if (not.null) predecessorCards && head e `elem` predecessorCards then tail e
                                     else e) columns)
@@ -167,8 +166,10 @@ module EightOff where
 
     -- Moves a card to the foundations and returns the resulting EOBoard
     moveToFoundations :: Card -> EOBoard -> EOBoard
-    moveToFoundations card (columns,reserves,foundations) = (columns, reserves, newFoundations)
+    moveToFoundations card (columns,reserves,foundations) = (new_columns, new_reserves, newFoundations)
         where newFoundations = matchCardWithFoundations card foundations
+              new_columns = map (delete card) columns
+              new_reserves = delete card reserves
 
     -- Check if two cards are of the same suit.
     sameSuit :: Card -> Card -> Bool

@@ -12,7 +12,6 @@ play a game, displaying successive moves -}
     import EightOff
     import EightOffPlayer
     import Data.Maybe
-    import MeanStats
 
 {-  Data Structures to be imported
  -- playing card data structures
@@ -85,7 +84,7 @@ play a game, displaying successive moves -}
  -- return a String for display
 
     scoreBoard :: EOBoard-> String
-    scoreBoard (columns, reserves, foundations) = "A LOSS: SCORE  " ++ (show (52- (length reserves) - (foldr (+) 0 (map length columns))))
+    scoreBoard (columns, reserves, foundations) = "A LOSS: SCORE  " ++ (show (52 - (length reserves) - (sum(map length columns))))
 
  -----------------------------------------------------------------------------
  -- play a game given initial board
@@ -104,6 +103,7 @@ play a game, displaying successive moves -}
                    do
                     let nb = fromJust result
                     -- let nb = resMaybe res
+                    -- changed to fromJust, which is a library function that does the same thing
                     displayEOGame nb
                   else
                    do
