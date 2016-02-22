@@ -2,6 +2,8 @@
 
 # README #
 
+The main logic code (EightOff, EightOffPlayer) files are mine, EOIO and MeanStats provided by Phil Green.
+
 ### What is this repository for? ###
 
 * This Haskell module provides several useful functions for playing or implementing a full game of Eight Off Solitaire in Haskell. 
