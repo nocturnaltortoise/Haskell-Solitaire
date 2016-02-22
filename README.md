@@ -1,3 +1,5 @@
+# Haskell Solitaire
+
 # README #
 
 ### What is this repository for? ###
