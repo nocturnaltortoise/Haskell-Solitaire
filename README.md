@@ -1,6 +1,6 @@
 # Haskell Solitaire
 
-The main logic code (EightOff, EightOffPlayer) files are mine, EOIO and MeanStats provided by Phil Green.
+The main logic code (EightOff, EightOffPlayer) files are mine, EOIO and MeanStats provided by Phil Green (P.Green@sheffield.ac.uk).
 
 ### What is this repository for? ###
 
